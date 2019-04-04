@@ -1,0 +1,81 @@
+service: LB-Logs-to-ES
+
+provider:
+  name: aws
+  runtime: python3.7
+  memorySize: 128
+  timeout: 120
+  region: eu-west-1
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:HeadBucket"
+        - "s3:ListBucket"
+        - "s3:GetBucketNotification"
+        - "s3:PutBucketNotification"
+      Resource: "arn:aws:s3:::${{opt:s3bucket}}"
+    - Effect: "Allow"
+      Action:
+        - "s3:GetObject"
+        - "s3:ListBucket"
+      Resource: "arn:aws:s3:::${{opt:s3bucket}}/*"
+  vpc:
+    securityGroupIds:
+      - <security-group-1>
+      - <security-group-2>
+    subnetIds:
+      - <subnet-1>
+      - <subnet-2>
+      - <subnet-3>
+
+functions:
+  runner:
+    handler: handler.entry_handler
+    name: ${{opt:stage}}-lb_logs_to_es
+    description: Load Balancer logs to ElasticSearch
+    events:
+      - existingS3:
+          bucket: ${{opt:s3bucket}}
+          events:
+            - s3:ObjectCreated:*
+          rules:
+            - prefix:
+              - 'Fn::Join':
+                - '/'
+                -
+                  - 'AWSLogs'
+                  - Ref: 'AWS::AccountId'
+                  - 'elasticloadbalancing'
+            - suffix: .gz
+      - existingS3:
+          bucket: ${{opt:s3bucket}}
+          events:
+            - s3:ObjectCreated:*
+          rules:
+            - prefix:
+              - 'Fn::Join':
+                - '/'
+                -
+                  - 'AWSLogs'
+                  - Ref: 'AWS::AccountId'
+                  - 'elasticloadbalancing'
+            - suffix: .gz
+    environment:
+      es_nodes: "${{opt:es_nodes}}"
+      index_prefix: "${{opt:index_prefix}}"
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    useDownloadCache: true
+    useStaticCache: true
+    #noDeploy: []
+
+package:
+  exclude:
+    - node_modules/**
+    - .venv/**
+
+plugins:
+  - serverless-python-requirements
+  - serverless-plugin-existing-s3

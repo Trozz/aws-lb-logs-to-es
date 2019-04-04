@@ -1,0 +1,11 @@
+{
+  "name": "logging",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {
+    "serverless-plugin-existing-s3": "^2.3.3"
+  },
+  "devDependencies": {
+    "serverless-python-requirements": "^4.3.0"
+  }
+}
